@@ -2,67 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- CRITICAL: This meta tag forces mobile browsers to render at the actual screen width -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>Responsive PDF Menu</title>
     <style>
+        /* --- CORE LAYOUT --- */
         body { 
-          
-        background-color: #000000; 
-        margin: 0; 
-        overflow: hidden; 
+            background-color: #000000; 
+            margin: 0; 
+            overflow: hidden; 
+            height: 100vh; 
+            height: 100dvh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
         
-        /* Fallback for older phones */
-        height: 100vh; 
-        /* The Magic Fix: Dynamic Viewport Height for modern phones */
-        height: 100dvh; 
-        
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-    }
-    
-    .flip-container {
-        width: 100%;
-        height: 100%; /* Changed from 100vh to 100% so it inherits the body's dvh */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px; 
-        box-sizing: border-box;
-    }
+        .flip-container {
+            width: 100%;
+            height: 100%; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px; 
+            box-sizing: border-box;
+            /* Allow scrolling if the user zooms in making the book larger than the screen */
+            overflow: auto; 
+        }
 
-    #menu-book { 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.7); 
-        display: none; 
-        /* Forces the injected StPageFlip wrapper to perfectly center itself */
-        margin: auto; 
-    }
-    
-    .my-page { 
-        background-color: white; 
-        border: 1px solid #ddd; 
-        overflow: hidden;
-    }
-    
-    .my-page canvas { 
-        width: 100%; 
-        height: 100%; 
-        object-fit: cover; 
-    }
+        /* --- THE ZOOM WRAPPER --- */
+        #zoom-wrapper {
+            transition: transform 0.3s ease-out; /* Makes the zoom action smooth */
+            transform-origin: center center;
+            margin: auto;
+        }
+
+        #menu-book { 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7); 
+            display: none; 
+        }
         
- #loading-text { 
-    position: absolute; /* Takes the text out of the normal layout flow */
-    top: 50%;           /* Pushes it halfway down the screen */
-    left: 50%;          /* Pushes it halfway across the screen */
-    transform: translate(-50%, -50%); /* Pulls it back by exactly half its own width/height to dead-center it */
-    color: white; 
-    font-family: sans-serif; 
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin: 0;
-    z-index: 10;        /* Ensures it sits on top of everything else */
-}
+        /* --- PAGE STYLING --- */
+        .my-page { 
+            background-color: white; 
+            border: 1px solid #ddd; 
+            overflow: hidden;
+        }
+        
+        .my-page canvas { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+        
+        /* --- TEXT & CONTROLS --- */
+        #loading-text { 
+            position: absolute;
+            top: 50%;           
+            left: 50%;          
+            transform: translate(-50%, -50%); 
+            color: white; 
+            font-family: sans-serif; 
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin: 0;
+            z-index: 10;        
+        }
+
+        /* --- ARROW BUTTONS --- */
+        .nav-btn {
+            position: fixed; /* Changed to fixed so they stay put when zoomed/scrolling */
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            padding: 15px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s, transform 0.2s;
+            z-index: 20; 
+            display: none; 
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-50%) scale(1.1); 
+        }
+
+        #prev-btn { left: 20px; }
+        #next-btn { right: 20px; }
+
+        /* --- ZOOM CONTROLS --- */
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none; /* Hidden until loaded */
+            gap: 15px;
+            z-index: 20;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+
+        .zoom-btn {
+            background-color: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .zoom-btn:hover { background-color: rgba(255, 255, 255, 0.3); }
+
+        @media (max-width: 600px) {
+            .nav-btn { font-size: 1.5rem; padding: 10px 15px; }
+            #prev-btn { left: 5px; }
+            #next-btn { right: 5px; }
+            .zoom-controls { bottom: 15px; padding: 8px 15px; }
+            .zoom-btn { width: 35px; height: 35px; font-size: 1.2rem; }
+        }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -70,15 +139,29 @@
 </head>
 <body>
 
-    <h2 id="loading-text">Please wait</h2>
+    <h2 id="loading-text">LOADING MENU...</h2>
     
+    <!-- Navigation & Zoom UI -->
+    <button id="prev-btn" class="nav-btn">&#10094;</button>
+    <button id="next-btn" class="nav-btn">&#10095;</button>
+
+    <div class="zoom-controls" id="zoom-ui">
+        <button id="zoom-out" class="zoom-btn">&minus;</button>
+        <button id="zoom-reset" class="zoom-btn" style="font-size: 1rem; border: none; width: auto; padding: 0 10px;">Reset</button>
+        <button id="zoom-in" class="zoom-btn">&plus;</button>
+    </div>
+
+    <!-- Flipbook Container with New Zoom Wrapper -->
     <div class="flip-container">
-        <div id="menu-book"></div>
+        <div id="zoom-wrapper">
+            <div id="menu-book"></div>
+        </div>
     </div>
 
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-        const pdfUrl = '2026-Menu2.pdf'; // Remember to update this!
+        
+        const pdfUrl = '2026-Menu2.pdf'; // UPDATE THIS
 
         async function createPdfFlipbook() {
             const bookContainer = document.getElementById('menu-book');
@@ -88,8 +171,6 @@
             
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 const page = await pdf.getPage(pageNum);
-                
-                // Bumped scale to 2.0 to keep text perfectly crisp on high-res phone screens
                 const viewport = page.getViewport({ scale: 2.0 }); 
                 
                 const pageDiv = document.createElement('div');
@@ -107,29 +188,64 @@
                 bookContainer.appendChild(pageDiv);
             }
 
+            // Reveal UI elements
             document.getElementById('loading-text').style.display = 'none';
             bookContainer.style.display = 'block';
+            document.getElementById('prev-btn').style.display = 'block';
+            document.getElementById('next-btn').style.display = 'block';
+            document.getElementById('zoom-ui').style.display = 'flex';
 
-            // THE RESPONSIVE CONFIGURATION
             const pageFlip = new St.PageFlip(bookContainer, {
-                width: 400, // Base page width
-                height: 600, // Base page height
-                size: "stretch", // Allows the book to stretch/shrink within its container
-                minWidth: 300, // Limits how small a page can get
-                maxWidth: 600, // Limits how large a page can get
+                width: 400, 
+                height: 600, 
+                size: "stretch", 
+                minWidth: 300, 
+                maxWidth: 600, 
                 minHeight: 400,
                 maxHeight: 800,
                 showCover: true,
-                mobileScrollSupport: true, // Ensures dragging/swiping feels native on touch screens
-                usePortrait: true // THE MAGIC BULLET: Forces 1-page mode when the screen is narrow
+                mobileScrollSupport: true, 
+                usePortrait: true 
             });
 
             pageFlip.loadFromHTML(document.querySelectorAll('.my-page'));
+
+            // --- ARROW LOGIC ---
+            document.getElementById('prev-btn').addEventListener('click', () => {
+                pageFlip.flipPrev();
+            });
+
+            document.getElementById('next-btn').addEventListener('click', () => {
+                pageFlip.flipNext();
+            });
+
+            // --- ZOOM LOGIC ---
+            let currentZoom = 1;
+            const zoomWrapper = document.getElementById('zoom-wrapper');
+
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                if (currentZoom < 2.5) { // Max zoom limit
+                    currentZoom += 0.25;
+                    zoomWrapper.style.transform = `scale(${currentZoom})`;
+                }
+            });
+
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                if (currentZoom > 0.75) { // Min zoom limit
+                    currentZoom -= 0.25;
+                    zoomWrapper.style.transform = `scale(${currentZoom})`;
+                }
+            });
+
+            document.getElementById('zoom-reset').addEventListener('click', () => {
+                currentZoom = 1;
+                zoomWrapper.style.transform = `scale(1)`;
+            });
         }
 
         createPdfFlipbook().catch(error => {
             console.error("Error loading PDF:", error);
-            document.getElementById('loading-text').innerText = "Failed to load menu.";
+            document.getElementById('loading-text').innerText = "Failed to load menu. Check the file path.";
         });
     </script>
 </body>
