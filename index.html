@@ -7,50 +7,62 @@
     <title>Responsive PDF Menu</title>
     <style>
         body { 
-            background-color: #000000; /* Dark background for high contrast */
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            overflow: hidden; /* Prevents accidental scrolling past the book */
-        }
+          
+        background-color: #000000; 
+        margin: 0; 
+        overflow: hidden; 
         
-        /* The outer wrapper that gives the book room to breathe on mobile */
-        .flip-container {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px; 
-            box-sizing: border-box;
-        }
+        /* Fallback for older phones */
+        height: 100vh; 
+        /* The Magic Fix: Dynamic Viewport Height for modern phones */
+        height: 100dvh; 
+        
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+    }
+    
+    .flip-container {
+        width: 100%;
+        height: 100%; /* Changed from 100vh to 100% so it inherits the body's dvh */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px; 
+        box-sizing: border-box;
+    }
 
-        #menu-book { 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7); 
-            display: none; 
-        }
+    #menu-book { 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.7); 
+        display: none; 
+        /* Forces the injected StPageFlip wrapper to perfectly center itself */
+        margin: auto; 
+    }
+    
+    .my-page { 
+        background-color: white; 
+        border: 1px solid #ddd; 
+        overflow: hidden;
+    }
+    
+    .my-page canvas { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+    }
         
-        .my-page { 
-            background-color: white; 
-            border: 1px solid #ddd; 
-            overflow: hidden;
-        }
-        
-        .my-page canvas { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-        }
-        
-        #loading-text { 
-            align-items: center;
-            color: white; 
-            font-family: sans-serif; 
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+ #loading-text { 
+    position: absolute; /* Takes the text out of the normal layout flow */
+    top: 50%;           /* Pushes it halfway down the screen */
+    left: 50%;          /* Pushes it halfway across the screen */
+    transform: translate(-50%, -50%); /* Pulls it back by exactly half its own width/height to dead-center it */
+    color: white; 
+    font-family: sans-serif; 
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin: 0;
+    z-index: 10;        /* Ensures it sits on top of everything else */
+}
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
